@@ -25,6 +25,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import coil.compose.AsyncImage
 import com.example.musicapp.data.model.Song
+import com.example.musicapp.ui.theme.AppleRed
+import com.example.musicapp.ui.theme.TextPrimary
+import com.example.musicapp.ui.theme.TextSecondary
 import com.example.musicapp.ui.viewmodel.MusicViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,6 +37,8 @@ fun NowPlayingScreen(
     isPlaying: Boolean,
     onClose: () -> Unit,
     onPlayPause: () -> Unit,
+    onNext: () -> Unit,
+    onPrevious: () -> Unit,
     viewModel: MusicViewModel
 ) {
     // Use full screen Dialog to simulate overlay effect, can also use ModalBottomSheet
@@ -42,6 +47,8 @@ fun NowPlayingScreen(
         properties = DialogProperties(usePlatformDefaultWidth = false) // Full screen
     ) {
         val progress by viewModel.progress.collectAsState()
+        val position by viewModel.position.collectAsState()
+        val duration by viewModel.duration.collectAsState()
 
         Surface(
             modifier = Modifier.fillMaxSize(),
@@ -70,7 +77,7 @@ fun NowPlayingScreen(
 
                 // 2. Huge rounded corner cover
                 AsyncImage(
-                    model = song.coverUrl,
+                    model = song.albumArtUri,
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxWidth(0.85f)
@@ -94,12 +101,12 @@ fun NowPlayingScreen(
                         text = song.title,
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                        color = TextPrimary
                     )
                     Text(
                         text = song.artist,
                         style = MaterialTheme.typography.titleMedium,
-                        color = Color.Gray
+                        color = TextSecondary
                     )
                 }
 
@@ -111,11 +118,20 @@ fun NowPlayingScreen(
                     onValueChange = { viewModel.seekTo(it) },
                     modifier = Modifier.padding(horizontal = 24.dp),
                     colors = SliderDefaults.colors(
-                        thumbColor = Color.Gray,
-                        activeTrackColor = Color.Gray,
+                        thumbColor = AppleRed,
+                        activeTrackColor = AppleRed,
                         inactiveTrackColor = Color.LightGray.copy(alpha = 0.5f)
                     )
                 )
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 28.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(text = formatTime(position), color = TextSecondary, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                    Text(text = formatTime(duration), color = TextSecondary, fontSize = MaterialTheme.typography.bodySmall.fontSize)
+                }
 
                 // 5. Playback control (Big icons)
                 Row(
@@ -126,18 +142,20 @@ fun NowPlayingScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     // Previous
-                    Icon(
-                        imageVector = Icons.Rounded.SkipPrevious,
-                        contentDescription = "Previous",
-                        modifier = Modifier.size(48.dp),
-                        tint = Color.Black
-                    )
+                    IconButton(onClick = onPrevious) {
+                        Icon(
+                            imageVector = Icons.Rounded.SkipPrevious,
+                            contentDescription = "Previous",
+                            modifier = Modifier.size(48.dp),
+                            tint = TextPrimary
+                        )
+                    }
 
                     // Play/Pause (Big)
                     FilledIconButton(
                         onClick = onPlayPause,
                         modifier = Modifier.size(72.dp),
-                        colors = IconButtonDefaults.filledIconButtonColors(containerColor = Color.Black) // Apple Music usually uses background color or transparent here
+                        colors = IconButtonDefaults.filledIconButtonColors(containerColor = TextPrimary)
                     ) {
                         Icon(
                             imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
@@ -148,12 +166,14 @@ fun NowPlayingScreen(
                     }
 
                     // Next
-                    Icon(
-                        imageVector = Icons.Rounded.SkipNext,
-                        contentDescription = "Next",
-                        modifier = Modifier.size(48.dp),
-                        tint = Color.Black
-                    )
+                    IconButton(onClick = onNext) {
+                        Icon(
+                            imageVector = Icons.Rounded.SkipNext,
+                            contentDescription = "Next",
+                            modifier = Modifier.size(48.dp),
+                            tint = TextPrimary
+                        )
+                    }
                 }
                 
                 // Lyrics area placeholder
@@ -161,4 +181,11 @@ fun NowPlayingScreen(
             }
         }
     }
+}
+
+private fun formatTime(positionMs: Long): String {
+    val totalSeconds = positionMs / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "%d:%02d".format(minutes, seconds)
 }
